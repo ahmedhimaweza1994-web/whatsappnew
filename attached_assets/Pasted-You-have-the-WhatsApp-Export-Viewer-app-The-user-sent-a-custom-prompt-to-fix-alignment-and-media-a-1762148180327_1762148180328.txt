@@ -1,0 +1,41 @@
+You have the WhatsApp Export Viewer app. The user sent a custom prompt to fix alignment and media, and some changes happened (e.g., media placeholders now show filenames like "IMG-20250708-WA0029.jpg" instead of "(الملف مرفق)", and parsing is better). However, issues remain in the chat window, as shown in the test output below.
+
+### Observed Issues (From Test Chat):
+1. **Message Alignment**: All messages are still left-aligned in a single column, even though there are two distinct senders ("Eugene Prime" as the user/me, and "+966 54 943 4931" as the other party). In WhatsApp style, messages from "Eugene Prime" should be right-aligned bubbles (green background, rounded tail on left), and from "+966 54 943 4931" left-aligned (white/gray bubbles, rounded tail on right). Timestamps always on the right side of each bubble.
+
+2. **Media Rendering**: Media now shows filenames (e.g., "IMG-20250708-WA0029.jpg" or "PTT-20250708-WA0030.opus") as text in the message body, but no actual media renders inline. Since media files are extracted from the zip with matching names/timestamps, replace the text with real elements: <img src={mediaBlobUrl} alt="Media" className="max-w-full rounded" /> for images (with lightbox zoom), <audio controls src={mediaBlobUrl} /> for voice notes (.opus), <video controls src={mediaBlobUrl} /> for videos, and <a href={mediaBlobUrl} download>Download {filename}</a> for docs. Use Canvas or URL.createObjectURL for blob URLs from extracted zip files. Add a "Media Gallery" icon in the chat header to open a modal with a grid of all media in the chat.
+
+Test Chat Example (Extracted Messages – Use This for Verification, Identify Senders for Alignment):
+- FEBRUARY 8, 2025
+  - Eugene Prime (right bubble): "كلمني الصبح لو فاضي" at 6:14 AM.
+  - Eugene Prime (right): "كله تمام الحمد لله" at 6:14 AM.
+  - Eugene Prime (right): "منا كنت قافل موبايلي" at 6:14 AM.
+  - Eugene Prime (right): "بس هو شغال دلوقتي ورقمي التاني شغال" at 6:14 AM.
+  - Eugene Prime (right): "01096696009" at 6:14 AM.
+  - Eugene Prime (right): "عاوز اكلمك بقالي كام يوم والله" at 6:14 AM.
+  - Eugene Prime (right): "انا لسة قابض امبارح معلش بقا اخرت عليك😂❤" at 6:15 AM.
+  - Eugene Prime (right): "احولهم علي نفس الرقم ؟" at 6:15 AM.
+- AUGUST 7, 2025
+  - +966 54 943 4931 (left): "انت مسحت حساب المسنجر" at 4:50 PM.
+  - Eugene Prime (right): "لو سمحت متعرفش حد حاجة محتاج أكون مع نفسي شوية ومش عاوز حد يبعتلي ولا من صحابي ولا منهم هناك" at 4:51 PM.
+  - Eugene Prime (right): "بعتلك قبليها علشان متفتكرش اني عملت بلوك ليك" at 4:51 PM.
+  - Eugene Prime (right): "ايوا يا ابيه مسحت كل حاجة" at 4:51 PM.
+  - Eugene Prime (right): "انا في المستشفى من امبارح" at 4:52 PM.
+  - +966 54 943 4931 (left): "خير ابنى فين ايه ؟" at 5:58 PM.
+  - Eugene Prime (right): "رحت مستشفي احمد ماهر عملت ايكو وتحاليل ورسم قلب وهروح مستشفي نضيفة بليل" at 6:01 PM.
+  - Eugene Prime (right): "عندي انسداد في الشرايين وذبحة صدرية ومكنتش عارف اتنفس خالص بقالي يومين" at 6:01 PM.
+  - +966 54 943 4931 (left): "الف سلامة" at 6:01 PM.
+  - Eugene Prime (right): "شكرا يا ابيه" at 6:02 PM.
+  - +966 54 943 4931 (left): "IMG-20250708-WA0029.jpg" at 6:02 PM → Render as inline image.
+  - Eugene Prime (right): "وصلي ايوا" at 6:02 PM.
+  - +966 54 943 4931 (left): "PTT-20250708-WA0030.opus" at 6:02 PM → Render as audio player.
+  - ... (continue through all 141 messages, e.g., PTT-20250708-WA0053.opus at 12:58 AM on AUGUST 8 as audio; ensure alignment alternates based on sender name).
+
+Smart Logic for Alignment (Implement This Creatively):
+- During parsing, detect two unique senders: Set "Eugene Prime" (or any name matching user email/profile) as "me" for right alignment. The other sender ("+966...") as "other" for left.
+- If more than two senders (group chat), default to left for non-me, right for me. Use string comparison: if sender === meName, align='right'; else 'left'.
+- In MessageBubble component: Use flex classes (e.g., Tailwind: 'flex justify-end' for right, 'justify-start' for left; ml-auto/mr-auto).
+
+For Media: In parsing, if body starts with "IMG-*.jpg" or "PTT-*.opus", set media = {type: 'image'/'audio'/'video', filename: match}, replace body text with render component, and load blob from extracted zip (e.g., zip.files[filename].async('blob').then(blob => URL.createObjectURL(blob))).
+
+Update ChatWindow, MessageBubble, and parser. Provide full updated code for affected files (e.g., components/MessageBubble.js with alignment/media logic). Test: Load zip with sample, verify alternating bubbles (right for Eugene Prime, left for +966), inline media renders (image/audio instead of text), gallery modal works. Keep WhatsApp UI fidelity.

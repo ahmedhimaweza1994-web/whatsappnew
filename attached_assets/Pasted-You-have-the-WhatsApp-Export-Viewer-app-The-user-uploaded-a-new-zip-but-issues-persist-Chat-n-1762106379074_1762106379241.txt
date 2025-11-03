@@ -1,0 +1,31 @@
+You have the WhatsApp Export Viewer app. The user uploaded a new .zip, but issues persist:
+- Chat name garbled: "/1/4) AJ H'*3'( E9 *+966 54 943 4931," (filename with Arabic/Saudi number +966..., RTL/encoding errors).
+- Still "No messages in this chat" – parser fails on Arabic .txt inside zip (Eastern numerals, RTL marks, multi-line, Arabic commas).
+
+From my test (using the previous .txt content), the correct parsing extracts 14 messages like this:
+Timestamp: 25/10/2025، 10:01 م - 
+Sender: Eugene Prime
+Body: سلام عليكم
+---
+Timestamp: 25/10/2025، 10:02 م - 
+Sender: Eugene Prime
+Body: مروان اخبارك ايه
+---
+... (up to 14 messages, with media placeholders like "<تم استبعاد الوسائط>")
+Clean Chat Name: دردشة في واتساب مع +20 15 01018144
+
+Fix the parser in JS to match this exactly. Implement directly—no suggestions.
+
+Key Fixes for Zip Parser:
+1. **Zip Extraction**: On upload, use JSZip to extract .txt and media. Read .txt as ArrayBuffer, decode with new TextDecoder('utf-8'). For filename (e.g., "دردشة...+966....txt"), clean with .replace(/[\u200E\u200F\u202A-\u202E]/g, '') and extract name by removing '.txt'.
+2. **Text Parsing**:
+   - Split lines, skip first line (if contains 'مشفرة').
+   - For each line: Clean RTL marks: line = line.replace(/[\u200E\u200F\u202A-\u202E]/g, '').trim().
+   - Convert Eastern Arabic numerals to Western: Map '٠١٢٣٤٥٦٧٨٩' to '0123456789' (use String.prototype.replace with map).
+   - Regex after conversion: /^(\d{1,2}\/\d{1,2}\/\d{4}، \d{1,2}:\d{2} [م|ص] - )(.+): (.*)$/ – capture timestamp, sender, body.
+   - Multi-line: If no match, append to previous body's body + '\n' + line.
+   - Media: If body includes '<تم استبعاد الوسائط>', mark as {media: true}, and match zip files by timestamp (e.g., parse "25/10/2025، 10:22 م" to "20251025", search "IMG-20251025-WA*.jpg" or "PTT-*.opus" in extracted media, add URL).
+3. **Display**: In chat, show messages with RTL dir="rtl" for Arabic bodies. Ensure chat name displays correctly (e.g., "دردشة مع +966 54 943 4931").
+4. **Test**: Simulate with previous .txt (paste content if needed). After upload, show 14 messages, clean name, media inline/gallery. Keep responsive/auth as fixed.
+
+Update parser.js/upload handler/Chat component. Provide full updated code, new deps (JSZip if not added). Run test: "Upload zip with Arabic .txt + media, verify output matches test."

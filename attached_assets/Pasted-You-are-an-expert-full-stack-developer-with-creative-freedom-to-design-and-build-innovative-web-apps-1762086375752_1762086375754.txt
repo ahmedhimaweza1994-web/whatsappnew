@@ -1,0 +1,44 @@
+You are an expert full-stack developer with creative freedom to design and build innovative web apps. I have no prior coding experience, so after planning, provide complete, detailed code for the entire app, optimized for Replit. Do NOT follow any predefined structure, file names, components, or design patterns—use your best judgment to create the optimal architecture, UI/UX, and implementation that best fits the requirements. Be creative: suggest improvements, alternative solutions, or enhancements to make it more efficient, user-friendly, or feature-rich while staying true to the core idea.
+
+### Detailed Project Description
+Build a fully featured web application called "WhatsApp Archive Viewer" that allows users to securely view and manage their personal WhatsApp chat backups entirely locally in Replit—no external services, databases, storage, or authentication providers. Everything must run offline after initial setup, using only Replit's local filesystem and in-memory processing where possible.
+
+Core Functionality:
+- Users create accounts and log in using a simple email/password system (handle registration, login, session management, and password recovery locally—e.g., via secure hashing and tokens).
+- Users upload a complete WhatsApp backup (typically a .crypt12/.crypt14 file like msgstore.db.crypt14, plus the required encryption key file) through an intuitive interface (e.g., drag-and-drop with progress indicators).
+- Upon upload, the app automatically decrypts the backup using the provided key, parses the internal SQLite database to extract all data, and imports it into a local, user-specific storage system. This includes:
+  - Full chat histories: Individual and group conversations with exact message threads.
+  - Messages: Text, emojis, links (made clickable), timestamps (formatted as HH:MM with date separators), sender/receiver details, read receipts, delivery statuses, and simulated typing indicators.
+  - Media attachments: Images (display inline with zoom), videos (playable previews), documents (downloadable), voice notes (playable audio), locations, and contacts—preserve originals and generate thumbnails for performance.
+  - Contacts and groups: Names, profile pictures (if available in backup), avatars, and metadata like last seen or online status (inferred from data).
+- Display everything in a chat interface that feels identical to WhatsApp Web: A sidebar for browsing chats (sorted by recency, with search, pinning, archiving, and unread counts), a main conversation window (bubbles for sent/received messages, smooth scrolling, infinite loading for long histories), and a bottom input area (for simulated typing or notes, even though no sending—focus on viewing).
+- Persistent storage: Save parsed data, media, and user info locally (e.g., in files or a local DB) so chats reload on refresh or restart. Support multiple backups per user, with options to switch, delete, or merge them.
+- Advanced interactions: Search across all messages/chats (fuzzy matching for text, filters for media/dates), export entire chats or selections as PDF (including embedded images) or JSON, view media galleries per chat, add reactions/notes to messages (local only), and simulate real-time updates (e.g., auto-scroll to new "messages" if adding notes).
+
+User Experience Goals:
+- Make the interface visually and interactively indistinguishable from WhatsApp Web: Use the exact color palette (dark green #075E54 for headers/backgrounds, light green #25D366 for accents, white/gray bubbles with rounded corners), fonts (clean sans-serif like Segoe UI), icons (simple SVGs for attachments, search, etc.), and animations (fade-ins for messages, slide-out sidebar on mobile).
+- Fully responsive: On desktop, side-by-side layout; on mobile, collapsible panels or stacked views.
+- Intuitive flows: Onboarding tutorial for first-time users (e.g., "How to get your WhatsApp key"), error handling (e.g., "Invalid key—try again" modals), and accessibility (keyboard navigation, alt text for media).
+- Performance: Handle large backups (100k+ messages) smoothly—paginate data, lazy-load media, and use efficient rendering to avoid lag.
+
+Key Challenges and Suggested Approaches (Adapt Creatively):
+1. **Backup Decryption**: WhatsApp backups are AES-encrypted SQLite files. Provide a robust, secure method to decrypt using the user's key file (e.g., derive the key from the file's header and apply it). Handle versions (crypt12/14) and errors like wrong keys without crashing.
+2. **Data Parsing**: The SQLite DB has tables like 'messages' (with columns for _id, key_remote_jid, from_me, data/body, media_url, timestamp), 'chat_list' (for chat names/avatars), and 'media_refs'. Extract and normalize this into a queryable format (e.g., JSON objects per chat/message), preserving relationships (e.g., link media to messages).
+3. **Local Storage and Security**: No cloud—use Replit's filesystem for files (e.g., user folders for media/DBs) and a local database if needed (e.g., SQLite for metadata). Encrypt sensitive data (e.g., messages) at rest. For auth, hash passwords securely and manage sessions with short-lived tokens to prevent unauthorized access.
+4. **Media Management**: Store uploaded media locally, serve them via the app (e.g., as static assets), and optimize (compress images, stream videos) to handle large files without bloating Replit's limits.
+5. **Offline Reliability**: Everything works without internet—cache aggressively, handle file I/O errors (e.g., disk full), and ensure data persists across sessions.
+6. **UI Fidelity and Polish**: Replicate WhatsApp's feel without copying code—focus on psychological UX like message bubbling (right-aligned for self, left for others), status icons (double ticks), and subtle feedback (vibrations on mobile if possible).
+7. **Edge Cases**: Empty/corrupted backups, very large files (chunked uploads), multi-language support (e.g., RTL for Arabic), and testing with dummy data generator for demo purposes.
+
+Technical Guidelines (Flexible—Choose Best Tools):
+- Base on modern web tech suitable for Replit (e.g., Node.js backend for processing, React-like frontend for UI).
+- Use npm packages only for essentials (e.g., for decryption/parsing: sqlite3, crypto-js; for UI: a CSS framework if it enhances creativity; for exports: a PDF lib).
+- Ensure the app is PWA-capable for installable offline use.
+- No external dependencies beyond what's installable in Replit—keep it lightweight.
+
+### Your Task: Plan and Build Creatively
+1. **Planning Phase**: First, outline your proposed architecture (e.g., "I'll use X framework for Y reason"), key innovations (e.g., "To improve search, I'll add Z indexing"), and step-by-step build plan. Explain why your choices are better than standard ones.
+2. **Implementation**: Then, generate the full, runnable codebase—setup commands, all necessary files, and a run script. Include comments for clarity, tests for core functions (e.g., parse a sample backup), and instructions for Replit deployment.
+3. **Testing and Enhancements**: End with how to test (e.g., "Upload this sample backup...") and any creative extras you add (e.g., AI-powered chat summaries if feasible locally).
+
+Build this now with full creativity—make it the best possible version of this app!

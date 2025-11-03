@@ -1,0 +1,58 @@
+u are an expert full-stack developer building a WhatsApp Export Viewer web app in Replit. The user has imported a previous version of the app code, but it's buggy. Start fresh: Explain your plan, then generate/fix the complete codebase using Next.js/React/Tailwind for a production-ready app. Be creative in architecture but fix all issues exactly. Use the provided .txt example for testing.
+
+### App Overview
+Build "WhatsApp Archive Viewer": A web app for viewing official WhatsApp chat exports (.zip files from "Export Chat > Include Media"). Users signup/login (custom auth), upload .zip, which contains .txt (messages) + media (images/videos/voice notes). Parse to display chats exactly like WhatsApp Web: Green theme (#075E54), sidebar for chats, bubble messages (right for "You", left for others), inline media, timestamps, search, galleries, PDF exports. Fully offline/local after upload (IndexedDB for data/media).
+
+Full Features:
+- Custom Auth: Email/password signup/login (bcrypt hash, JWT tokens with secret). No Replit Auth—remove it completely. Protect routes (e.g., dashboard).
+- Upload: Drag-drop .zip only. Extract .txt + media (JSZip). Parse .txt to JSON chats/messages.
+- Sidebar: Chat list (from multiple zips), search, pin/archive, unread badges.
+- Chat Window: Bubbles with text/emojis/links, timestamps (HH:MM, date separators), media inline (img/audio/video), gallery button.
+- Extras: Global search (fuzzy), export PDF/JSON (react-pdf), dark mode, PWA offline.
+
+UI/UX: 100% WhatsApp clone—responsive (mobile: hamburger sidebar, full chat; desktop: side-by-side). RTL for Arabic, LTR for English (auto-detect).
+
+### Previous Issues (Fix These – Test with Example .txt Below)
+The imported code has bugs from Arabic export testing:
+1. **Garbled Chat Name**: Filename like "دردشة في واتساب مع +20 15 01018144.txt" shows as "âØ¯Ø±Ø¯Ø´Ø© ÙÙ ÙØ§ØªØ³Ø§Ø¨ ÙØ¹ ââª+20 15 01018144â¬â" or "/1/4) AJ H'*3'( E9 *+966 54 943 4931,". Cause: UTF-8/RTL marks not cleaned.
+2. **No Messages Shown**: "No messages in this chat" despite content. Parser fails on Arabic: Eastern numerals (٠١٢٣٤٥٦٧٨٩), Arabic comma (،), RTL marks (\u200F), multi-line bodies, first line ignored.
+3. **No Media**: Zip media (e.g., IMG-*.jpg, PTT-*.opus) not extracted/matched to "<تم استبعاد الوسائط>" placeholders. No inline display/gallery.
+
+Example .txt Content (Test With This – Simulate in Zip):
+١٥‏/١٠‏/٢٠٢٥، ٧:٤٠ م - ‏الرسائل والمكالمات مشفرة تمامًا بين الطرفين. ويمكن للأشخاص المشاركين فقط في هذه الدردشة قراءتها أو الاستماع إليها أو مشاركتها. تعرّف على المزيد.
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٠١ م - Eugene Prime: سلام عليكم
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٠٢ م - Eugene Prime: مروان اخبارك ايه
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٠٢ م - Eugene Prime: اخبارك ايه يا خالو احسن 😂
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٢٢ م - ‏‪+20 15 01018144‬‏: <تم استبعاد الوسائط>
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٢٢ م - ‏‪+20 15 01018144‬‏: <تم استبعاد الوسائط>
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٢٥ م - Eugene Prime: كله تمام يا مدير
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٢٥ م - Eugene Prime: كنت عاوزك تبعتي ال ai tools اللي كنت هتستخدمها في المنتجات
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٢٥ م - Eugene Prime: خلينا نفيد بعض
+٢٥‏/١٠‏/٢٠٢٥، ١٠:٢٧ م - ‏‪+20 15 01018144‬‏: <تم استبعاد الوسائط>
+٣٠‏/١٠‏/٢٠٢٥، ١٠:٤٣ ص - ‏‪+20 15 01018144‬‏: الف الف سلامة عليها يارب وتقوم بالسلامة وتبقي احسن من الاول
+ربنا يشفيها يارب
+٣٠‏/١٠‏/٢٠٢٥، ١٠:٤٤ ص - Eugene Prime: ان شاء الله يسمع منك ربنا , شكرا يا مروان تسلملي يا حبيبي
+٣٠‏/١٠‏/٢٠٢٥، ١٠:٤٦ ص - ‏‪+20 15 01018144‬‏: حبيبي علي اية
+ربنا يباركلك فيها ويخليها يارب ويشفيها
+٣٠‏/١٠‏/٢٠٢٥، ١٠:٤٦ ص - Eugene Prime: ان شاء الله
+textExpected Output: ~14 messages, clean name "دردشة في واتساب مع +20 15 01018144", media placeholders matched to zip files (e.g., PTT.opus at 10:22 م).
+
+### Fixes to Implement (Directly in Code)
+1. **Zip Upload/Extraction**: Single .zip upload. JSZip to extract .txt (read as UTF-8 TextDecoder), media as blobs/URLs (store in IndexedDB). Error if no .txt.
+2. **Parser Fixes**:
+   - Clean line: replace RTL marks (/[\u200E\u200F\u202A-\u202E]/g, ''), convert Eastern nums ('٠١٢٣٤٥٦٧٨٩' -> '0123456789' via map/replace).
+   - Skip first line if 'مشفرة'.
+   - Regex: /^(\d{1,2}\/\d{1,2}\/\d{4}، \d{1,2}:\d{2} [م|ص] - )(.+): (.*)$/ after cleaning – capture timestamp, sender, body.
+   - Multi-line: Append non-matching lines to prev body.
+   - Media: For "<تم استبعاد الوسائط>", parse timestamp to YYYYMMDD, match zip files (e.g., "IMG-YYYYMMDD-WA*.jpg"), add {media: {type: 'image', url: blobUrl}}.
+3. **Chat Name**: From .txt filename, clean RTL/encoding, extract "دردشة مع [number]".
+4. **Arabic/English**: dir="rtl" for Arabic (detect by script), date-fns locale.
+5. **Responsive**: Tailwind/media queries – mobile: sidebar hidden/hamburger, chat flex-col.
+6. **Auth**: Custom only – bcrypt/JWT (use .env JWT_SECRET). Signup/login forms, protected routes.
+7. **Media Display**: Inline <img>/<audio>/<video>, gallery grid.
+
+Tech Stack: Next.js, Tailwind, JSZip, bcryptjs, jsonwebtoken, dexie (IndexedDB), date-fns, react-pdf. Add npm i if needed.
+
+Plan: 1. Outline fixes. 2. Generate full code (files: app/layout.js, auth/, upload/route.js, parser.js, components/Chat.js). 3. Test: "Simulate zip with example .txt + dummy media, show 14 msgs/media."
+
+Build now—make it flawless!

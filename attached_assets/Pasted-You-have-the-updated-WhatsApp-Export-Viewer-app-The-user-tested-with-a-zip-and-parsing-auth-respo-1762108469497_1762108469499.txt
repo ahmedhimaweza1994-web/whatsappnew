@@ -1,0 +1,26 @@
+You have the updated WhatsApp Export Viewer app. The user tested with a .zip, and parsing/auth/responsiveness are working well (messages extract correctly, Arabic RTL partial, media placeholders show). However, two key UI issues remain in the chat window, as shown in the test output below.
+
+### Observed Issues (From Test Chat):
+1. **Message Bubbles Alignment**: All messages are displayed left-aligned in a single column. In WhatsApp style, they should be divided: Right-aligned bubbles for messages from the user/me ("Eugene Prime" or "You"), left-aligned for the other party ("+966 54 943 4931"). Use distinct styles (e.g., green background with rounded tail on right, white/gray on left) for visual distinction, with timestamps on the right side.
+
+2. **Media Rendering**: Messages with media show only text placeholders like "IMG-20250708-WA0029.jpg (الملف مرفق)" or "PTT-20250708-WA0053.opus (الملف مرفق)", but no actual media displays inline in the chat. Media should render directly: Images as clickable inline <img> with zoom, voice notes (OPUS) as <audio controls> player, videos as <video> with play button, and documents as download links. Add thumbnails for loading states, and a "Media Gallery" button in the header for a full grid view per chat. Ensure media URLs from extracted zip are blob: or local for offline.
+
+Test Chat Example (Extracted Messages – Use This for Verification):
+- FEBRUARY 8, 2025
+  - Eugene Prime (right bubble): "كلمني الصبح لو فاضي" at 6:14 AM.
+  - Eugene Prime (right): "كله تمام الحمد لله" at 6:14 AM.
+  - ... (multiple from Eugene Prime).
+- AUGUST 7, 2025
+  - +966 54 943 4931 (left): "انت مسحت حساب المسنجر" at 4:50 PM.
+  - Eugene Prime (right): "لو سمحت متعرفش حد..." at 4:51 PM.
+  - +966 54 943 4931 (left): "خير ابنى فين ايه ؟" at 5:58 PM.
+  - Eugene Prime (right): "رحت مستشفي احمد ماهر..." at 6:01 PM.
+  - +966 54 943 4931 (left): "الف سلامة" at 6:01 PM.
+  - Eugene Prime (right): "شكرا يا ابيه" at 6:02 PM.
+  - +966 54 943 4931 (left): "IMG-20250708-WA0029.jpg (الملف مرفق)" at 6:02 PM → Render image inline.
+  - +966 54 943 4931 (left): "PTT-20250708-WA0030.opus (الملف مرفق)" at 6:02 PM → Render audio player.
+  - ... (continue to 141 messages, with more media like PTT-20250708-WA0053.opus at 12:58 AM on AUGUST 8).
+
+After fixes, the chat should look exactly like WhatsApp: Alternating bubbles, media embedded in flow (e.g., image below the sender's timestamp), smooth scrolling, and responsive (stacked on mobile).
+
+Update the ChatWindow component, MessageBubble, and media rendering logic. Provide full updated code for affected files (e.g., components/ChatWindow.js, utils/mediaHandler.js). Add any needed CSS (Tailwind classes for alignment: ml-auto for right, mr-auto for left). Test: Load the sample chat from zip, verify 141 messages with proper alignment/media, no placeholders—actual renders. Keep all prior features (search, export, auth).

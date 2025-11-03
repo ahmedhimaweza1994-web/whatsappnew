@@ -1,0 +1,44 @@
+You are an expert full-stack developer with creative freedom to design and build innovative web apps using modern tools like Next.js and React. I'm a beginner, so after your planning, provide complete, runnable code for the entire app, optimized for Bolt.new (StackBlitz). Do NOT follow any predefined structure, file names, components, or design patterns—use your best judgment to create the optimal architecture, UI/UX, and implementation that best fits the requirements. Be creative: suggest improvements, alternative solutions, or enhancements (e.g., better search algorithms or PWA features) to make it more efficient, user-friendly, or feature-rich, while staying true to the core idea. Ensure it's fully local/offline-capable after setup, with no external services.
+
+### Detailed Project Description: WhatsApp Export Viewer
+Build a fully featured web application called "WhatsApp Export Viewer" that lets users upload and view their officially exported WhatsApp chats in an interface that's visually and interactively identical to WhatsApp Web. Use only legitimate WhatsApp exports (no decryption or backups—strictly .txt files from "Export Chat" feature, plus optional media zip).
+
+Core Functionality:
+- Simple onboarding: Guide users on how to export from WhatsApp (Settings > Chats > Export Chat > Include Media for full experience).
+- Upload interface: Drag-and-drop for .txt file (chat text) and .zip (media files). Support multiple chat exports (e.g., upload several .txt/zips to create a "library" of chats).
+- Automatic parsing: Read the .txt format (e.g., lines like "[MM/DD/YY, HH:MM:SS] Name: Message" or "[MM/DD/YY, HH:MM:SS] You: Message"), extract timestamps, senders, messages, and media references (e.g., [Image attached]). For media zip, extract and map files to messages based on timestamps/names (e.g., IMG-20251102-WA0001.jpg).
+- Display chats exactly like WhatsApp Web:
+  - Sidebar: List of chats/groups (sorted by last message, with search bar, unread badges, pinning, archiving). Each entry shows contact name/pic (infer from export or allow manual upload), preview of last message.
+  - Main chat window: Bubble-style messages (right-aligned for "You", left for others; rounded white/green bubbles), with text, emojis (renderable), clickable links, timestamps (HH:MM with date separators like "Today" or "Yesterday"), and message statuses (simulated sent/delivered/read ticks).
+  - Media integration: Inline images (with zoom/lightbox), playable videos (HTML5 controls), downloadable docs/audios (voice notes with waveform player), and maps for locations if in export.
+- Persistent local storage: Save parsed chats/media in browser (IndexedDB or localStorage) so they reload on refresh. Allow users to manage library (delete, rename chats).
+- Advanced features: Global search across chats/messages (fuzzy text matching, filters for media/links/dates), per-chat media gallery (grid view with thumbnails), export viewed chat as PDF (including images via a lib like react-pdf) or JSON, dark/light mode toggle, and simulated interactions (e.g., "typing..." animation on scroll).
+
+User Experience Goals:
+- 100% visual fidelity to WhatsApp Web: Exact colors (#075E54 dark green headers, #25D366 accents, #EDEDED backgrounds, #DCF8C6 sent bubbles, #FFFFFF received), fonts (Segoe UI or similar sans-serif), icons (SVGs for attachments/search/camera), animations (smooth scroll, message fade-ins, sidebar slide-out on mobile).
+- Responsive design: Desktop side-by-side (30% sidebar, 70% chat); mobile stacked/collapsible.
+- Intuitive and polished: Progress bars for parsing large exports (40k+ lines), error handling (e.g., "Invalid .txt format" modals), accessibility (keyboard nav, ARIA labels), and RTL support for Arabic.
+- Performance: Handle large exports smoothly—paginate messages, lazy-load media, virtual scrolling for long chats.
+
+Key Challenges and Suggested Approaches (Adapt Creatively):
+1. **Parsing Exports**: .txt is line-based; use regex to split [timestamp] Name: Message. For media, unzip and match filenames to timestamps (e.g., sort files by date). Handle variations (e.g., group chats with multiple senders).
+2. **Media Mapping**: Exports don't always link perfectly—suggest fuzzy matching by time/name. Generate thumbnails with Canvas API for speed.
+3. **Local Storage/Security**: Use IndexedDB for structured data (chats as objects). No auth needed (personal app), but add optional password-protect for exports.
+4. **UI Replication**: Focus on psychological UX—bubbles with tails, double-check ticks, date bubbles. Reference open-source WhatsApp clones for inspiration but make it original.
+5. **Edge Cases**: Empty exports, huge files (chunked upload), mixed media types, non-English text (UTF-8 handling).
+6. **Offline Reliability**: PWA-ready (manifest, service worker for caching parsed data/media).
+
+Technical Guidelines (Flexible—Choose Best Tools for Bolt.new):
+- Frontend: React/Next.js for dynamic UI.
+- Parsing: JS libs like PapaParse (for .txt as CSV-like) or AdmZip (for unzip).
+- UI/Styling: Tailwind CSS or styled-components for exact WhatsApp match.
+- Storage: Dexie.js (IndexedDB wrapper) or localForage.
+- Extras: Date-fns (timestamps), Framer Motion (animations), React-Window (virtual lists).
+- No external APIs—everything client-side for offline use. Keep lightweight for Bolt.new.
+
+### Your Task: Plan and Build Creatively
+1. **Planning Phase**: Outline your architecture (e.g., "Component-based React with Context for state"), innovations (e.g., "AI-assisted search with local embeddings if feasible"), and build steps. Explain why your choices optimize for Bolt.new.
+2. **Implementation**: Generate full code—setup (e.g., Next.js boilerplate), all files, and a run command. Include sample dummy export (.txt + zip) for testing, comments, and Bolt.new-specific tips (e.g., preview mode).
+3. **Testing/Enhancements**: Provide test instructions (e.g., "Upload this sample...") and any extras (e.g., theme customizer).
+
+Build this now with full creativity—make it the ultimate personal WhatsApp archive viewer!
