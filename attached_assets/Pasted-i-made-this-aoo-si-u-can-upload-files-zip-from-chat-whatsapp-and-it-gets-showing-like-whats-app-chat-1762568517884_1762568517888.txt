@@ -1,0 +1,35 @@
+i made this aoo si u can upload files zip from chat whatsapp and it gets showing like whats app chat in this app 100% but
+
+now this app has an issue which is :
+
+when i upload a small zip file it gets uploaded and the chat of it will show perfectly with no prb
+
+but with big zip files it never uploads and i get error somtimes saying
+Failed to load resource: the server responded with a status of 408 (Request Timeout) Upload failed
+
+so first i want to idenfty why this happens and from which file and fix it and till me how did u fix it
+now i tried ro upload the same big file and i got Upload failed
+
+POST https://4619299e-350c-4fd1-a712-e6534e3c303a-00-3gax9zdyw8edo.riker.replit.dev/api/upload 408 (Request Timeout)
+n @ ajaxRequestInterceptor.ps.js:1
+fetch @ ajaxRequestInterceptor.ps.js:1
+await in fetch
+handleUpload @ UploadDialog.tsx:59
+callCallback2 @ chunk-RPCDYKBN.js?v=3fb830ec:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=3fb830ec:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=3fb830ec:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=3fb830ec:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=3fb830ec:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=3fb830ec:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=3fb830ec:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=3fb830ec:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=3fb830ec:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=3fb830ec:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=3fb830ec:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=3fb830ec:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=3fb830ec:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=3fb830ec:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=3fb830ec:5449Understand this error
+ajaxRequestInterceptor.ps.js:1 Fetch failed loading: POST "https://4619299e-350c-4fd1-a712-e6534e3c303a-00-3gax9zdyw8edo.riker.replit.dev/api/upload".
+
+The server logs show no upload attempt was even logged, which means the timeout is happening before the request reaches your server.

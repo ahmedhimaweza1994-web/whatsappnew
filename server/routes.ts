@@ -138,6 +138,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   app.post("/api/upload", isAuthenticated, upload.single("file"), async (req: AuthRequest, res: Response) => {
+    req.setTimeout(600000);
+    res.setTimeout(600000);
+    
     try {
       const userId = req.userId!;
 
@@ -147,13 +150,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const filePath = req.file.path;
       const originalName = req.file.originalname;
+      const fileSize = req.file.size;
+
+      console.log(`[Upload] Starting upload for user ${userId}: ${originalName} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
 
       let parsedChats: Array<{ name: string; messages: any[]; isGroup: boolean }> = [];
 
       if (originalName.endsWith('.zip')) {
+        console.log(`[Upload] Reading zip file into memory...`);
         const zipBuffer = await fs.readFile(filePath);
+        console.log(`[Upload] Loading zip archive...`);
         const zip = await JSZip.loadAsync(zipBuffer);
+        console.log(`[Upload] Zip loaded, found ${Object.keys(zip.files).length} files`);
         
+        console.log(`[Upload] Parsing chat text files...`);
         for (const [filename, file] of Object.entries(zip.files)) {
           if (filename.endsWith('.txt') && !file.dir) {
             const buffer = await file.async('nodebuffer');
@@ -163,6 +173,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const parser = new WhatsAppParser();
             const parsed = parser.parseExport(content, chatName);
             parsedChats.push(parsed);
+            console.log(`[Upload] Parsed chat: ${chatName} (${parsed.messages.length} messages)`);
           }
         }
 
@@ -171,6 +182,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const mediaFiles: Array<{ filename: string; timestamp: Date; type: string }> = [];
         
+        console.log(`[Upload] Extracting media files...`);
+        let mediaCount = 0;
         for (const [filename, file] of Object.entries(zip.files)) {
           if (!filename.endsWith('.txt') && !file.dir && !filename.startsWith('__MACOSX')) {
             const buffer = await file.async('nodebuffer');
@@ -187,8 +200,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 type: mediaInfo.type
               });
             }
+            mediaCount++;
+            if (mediaCount % 10 === 0) {
+              console.log(`[Upload] Extracted ${mediaCount} media files...`);
+            }
           }
         }
+        console.log(`[Upload] Extracted ${mediaCount} media files total`);
 
         for (const parsedChat of parsedChats) {
           const parser = new WhatsAppParser();
@@ -208,6 +226,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DFE6E9', '#A29BFE', '#FD79A8'];
       let totalMessages = 0;
 
+      console.log(`[Upload] Saving ${parsedChats.length} chats to database...`);
       for (const parsedChat of parsedChats) {
         const color = colors[Math.floor(Math.random() * colors.length)];
         
@@ -230,11 +249,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }));
 
         if (messagesToInsert.length > 0) {
+          console.log(`[Upload] Inserting ${messagesToInsert.length} messages for chat: ${parsedChat.name}...`);
           await storage.createMessages(messagesToInsert);
           totalMessages += messagesToInsert.length;
         }
       }
 
+      console.log(`[Upload] Creating upload record...`);
       await storage.createUpload({
         userId,
         fileName: originalName,
@@ -245,6 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       await fs.unlink(filePath);
 
+      console.log(`[Upload] ✓ Upload complete: ${parsedChats.length} chats, ${totalMessages} messages`);
       res.json({
         success: true,
         chatCount: parsedChats.length,
