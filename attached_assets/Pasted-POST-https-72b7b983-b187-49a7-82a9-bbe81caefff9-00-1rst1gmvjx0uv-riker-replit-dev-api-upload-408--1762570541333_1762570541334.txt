@@ -1,0 +1,42 @@
+POST https://72b7b983-b187-49a7-82a9-bbe81caefff9-00-1rst1gmvjx0uv.riker.replit.dev/api/upload 408 (Request Timeout)
+n @ ajaxRequestInterceptor.ps.js:1
+fetch @ ajaxRequestInterceptor.ps.js:1
+await in fetch
+apply @ injected.js:204
+handleUpload @ UploadDialog.tsx:59
+callCallback2 @ chunk-RPCDYKBN.js?v=3fb830ec:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=3fb830ec:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=3fb830ec:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=3fb830ec:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=3fb830ec:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=3fb830ec:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=3fb830ec:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=3fb830ec:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=3fb830ec:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=3fb830ec:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=3fb830ec:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=3fb830ec:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=3fb830ec:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=3fb830ec:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=3fb830ec:5449Understand this error
+ajaxRequestInterceptor.ps.js:1 Fetch failed loading: POST "https://72b7b983-b187-49a7-82a9-bbe81caefff9-00-1rst1gmvjx0uv.riker.replit.dev/api/upload".
+n @ ajaxRequestInterceptor.ps.js:1
+fetch @ ajaxRequestInterceptor.ps.js:1
+await in fetch
+apply @ injected.js:204
+handleUpload @ UploadDialog.tsx:59
+callCallback2 @ chunk-RPCDYKBN.js?v=3fb830ec:3674
+invokeGuardedCallbackDev @ chunk-RPCDYKBN.js?v=3fb830ec:3699
+invokeGuardedCallback @ chunk-RPCDYKBN.js?v=3fb830ec:3733
+invokeGuardedCallbackAndCatchFirstError @ chunk-RPCDYKBN.js?v=3fb830ec:3736
+executeDispatch @ chunk-RPCDYKBN.js?v=3fb830ec:7014
+processDispatchQueueItemsInOrder @ chunk-RPCDYKBN.js?v=3fb830ec:7034
+processDispatchQueue @ chunk-RPCDYKBN.js?v=3fb830ec:7043
+dispatchEventsForPlugins @ chunk-RPCDYKBN.js?v=3fb830ec:7051
+(anonymous) @ chunk-RPCDYKBN.js?v=3fb830ec:7174
+batchedUpdates$1 @ chunk-RPCDYKBN.js?v=3fb830ec:18913
+batchedUpdates @ chunk-RPCDYKBN.js?v=3fb830ec:3579
+dispatchEventForPluginEventSystem @ chunk-RPCDYKBN.js?v=3fb830ec:7173
+dispatchEventWithEnableCapturePhaseSelectiveHydrationWithoutDiscreteEventReplay @ chunk-RPCDYKBN.js?v=3fb830ec:5478
+dispatchEvent @ chunk-RPCDYKBN.js?v=3fb830ec:5472
+dispatchDiscreteEvent @ chunk-RPCDYKBN.js?v=3fb830ec:5449
