@@ -24,7 +24,9 @@ export interface IStorage {
   searchMessages(userId: string, query: string): Promise<Array<Message & { chatName: string }>>;
   
   getUploads(userId: string): Promise<Upload[]>;
+  getUpload(id: string): Promise<Upload | undefined>;
   createUpload(upload: InsertUpload): Promise<Upload>;
+  updateUpload(id: string, data: Partial<Upload>): Promise<Upload | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -178,8 +180,21 @@ export class DbStorage implements IStorage {
       .orderBy(desc(uploads.uploadedAt));
   }
 
+  async getUpload(id: string): Promise<Upload | undefined> {
+    const result = await db.select().from(uploads).where(eq(uploads.id, id)).limit(1);
+    return result[0];
+  }
+
   async createUpload(upload: InsertUpload): Promise<Upload> {
     const result = await db.insert(uploads).values(upload).returning();
+    return result[0];
+  }
+
+  async updateUpload(id: string, data: Partial<Upload>): Promise<Upload | undefined> {
+    const result = await db.update(uploads)
+      .set(data)
+      .where(eq(uploads.id, id))
+      .returning();
     return result[0];
   }
 }

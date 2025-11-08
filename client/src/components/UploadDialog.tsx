@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Upload, FileText, Loader2, CheckCircle, XCircle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,20 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
   const [uploadResult, setUploadResult] = useState<{ chatCount: number; messageCount: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
+  const pollIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  const stopPolling = useCallback(() => {
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+      pollIntervalRef.current = null;
+    }
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      stopPolling();
+    };
+  }, [stopPolling]);
 
   const handleDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -40,9 +54,80 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
     }
   }, []);
 
+  const pollUploadStatus = (uploadId: string) => {
+    stopPolling();
+
+    pollIntervalRef.current = setInterval(async () => {
+      try {
+        const res = await fetch(`/api/upload/${uploadId}/status`, {
+          credentials: 'include',
+        });
+
+        if (!res.ok) {
+          throw new Error('Failed to check upload status');
+        }
+
+        const status = await res.json();
+        setProgress(status.progress);
+
+        if (status.status === 'completed') {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          
+          setUploadResult({
+            chatCount: status.chatCount,
+            messageCount: status.messageCount,
+          });
+
+          await queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
+
+          toast({
+            title: "Upload successful!",
+            description: `Imported ${status.chatCount} chats with ${status.messageCount} messages`,
+          });
+
+          setTimeout(() => {
+            onOpenChange(false);
+            setFile(null);
+            setProgress(0);
+            setUploadResult(null);
+            setUploading(false);
+          }, 2000);
+        } else if (status.status === 'failed') {
+          if (pollIntervalRef.current) {
+            clearInterval(pollIntervalRef.current);
+            pollIntervalRef.current = null;
+          }
+          
+          setError(status.errorMessage || 'Upload processing failed');
+          setUploading(false);
+          setProgress(0);
+
+          toast({
+            title: "Upload failed",
+            description: status.errorMessage || 'Failed to process the file',
+            variant: "destructive",
+          });
+        }
+      } catch (err: any) {
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
+        
+        setError(err.message || 'Failed to check upload status');
+        setUploading(false);
+        setProgress(0);
+      }
+    }, 1500);
+  };
+
   const handleUpload = async () => {
     if (!file) return;
 
+    stopPolling();
     setUploading(true);
     setProgress(0);
     setError(null);
@@ -52,10 +137,6 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
       const formData = new FormData();
       formData.append('file', file);
 
-      const progressInterval = setInterval(() => {
-        setProgress(prev => Math.min(prev + 10, 90));
-      }, 500);
-
       const res = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
@@ -63,42 +144,47 @@ export function UploadDialog({ open, onOpenChange }: UploadDialogProps) {
       });
 
       if (!res.ok) {
-        throw new Error(await res.text() || 'Upload failed');
+        const errorText = await res.text();
+        throw new Error(errorText || 'Upload failed');
       }
 
       const result = await res.json();
 
-      clearInterval(progressInterval);
-      setProgress(100);
+      if (result.uploadId) {
+        setProgress(5);
+        pollUploadStatus(result.uploadId);
+      } else {
+        setProgress(100);
+        setUploadResult({
+          chatCount: result.chatCount,
+          messageCount: result.messageCount,
+        });
 
-      setUploadResult({
-        chatCount: result.chatCount,
-        messageCount: result.messageCount,
-      });
+        await queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
 
-      await queryClient.invalidateQueries({ queryKey: ['/api/chats'] });
+        toast({
+          title: "Upload successful!",
+          description: `Imported ${result.chatCount} chats with ${result.messageCount} messages`,
+        });
 
-      toast({
-        title: "Upload successful!",
-        description: `Imported ${result.chatCount} chats with ${result.messageCount} messages`,
-      });
-
-      setTimeout(() => {
-        onOpenChange(false);
-        setFile(null);
-        setProgress(0);
-        setUploadResult(null);
-      }, 2000);
+        setTimeout(() => {
+          onOpenChange(false);
+          setFile(null);
+          setProgress(0);
+          setUploadResult(null);
+          setUploading(false);
+        }, 2000);
+      }
     } catch (err: any) {
+      stopPolling();
       setError(err.message || 'Upload failed');
       setProgress(0);
+      setUploading(false);
       toast({
         title: "Upload failed",
         description: err.message || 'Failed to process the file',
         variant: "destructive",
       });
-    } finally {
-      setUploading(false);
     }
   };
 

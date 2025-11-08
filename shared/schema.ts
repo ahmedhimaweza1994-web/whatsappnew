@@ -57,9 +57,14 @@ export const uploads = pgTable("uploads", {
   userId: varchar("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
   fileName: text("file_name").notNull(),
   fileSize: integer("file_size").notNull(),
+  filePath: text("file_path").notNull(),
+  status: text("status").default("pending").notNull(),
+  progress: integer("progress").default(0).notNull(),
+  errorMessage: text("error_message"),
   chatCount: integer("chat_count").default(0).notNull(),
   messageCount: integer("message_count").default(0).notNull(),
   uploadedAt: timestamp("uploaded_at").defaultNow().notNull(),
+  processedAt: timestamp("processed_at"),
 });
 
 export const upsertUserSchema = createInsertSchema(users);

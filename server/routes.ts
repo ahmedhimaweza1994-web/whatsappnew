@@ -2,11 +2,11 @@ import express, { type Express, type Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { WhatsAppParser } from "./whatsapp-parser";
+import { StreamingZipProcessor } from "./streaming-zip-processor";
 import { setupAuth, isAuthenticated, type AuthRequest } from "./customAuth";
 import multer from "multer";
 import path from "path";
 import fs from "fs/promises";
-import JSZip from "jszip";
 import { insertChatSchema, insertMessageSchema, insertUploadSchema } from "@shared/schema";
 import { z } from "zod";
 
@@ -149,9 +149,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       next();
     });
   }, async (req: AuthRequest, res: Response) => {
-    req.setTimeout(600000);
-    res.setTimeout(600000);
-    
     try {
       const userId = req.userId!;
 
@@ -163,126 +160,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const originalName = req.file.originalname;
       const fileSize = req.file.size;
 
-      console.log(`[Upload] Starting upload for user ${userId}: ${originalName} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
-
-      let parsedChats: Array<{ name: string; messages: any[]; isGroup: boolean }> = [];
+      console.log(`[Upload] Received file: ${originalName} (${(fileSize / 1024 / 1024).toFixed(2)} MB)`);
 
       if (originalName.endsWith('.zip')) {
-        console.log(`[Upload] Reading zip file into memory...`);
-        const zipBuffer = await fs.readFile(filePath);
-        console.log(`[Upload] Loading zip archive...`);
-        const zip = await JSZip.loadAsync(zipBuffer);
-        console.log(`[Upload] Zip loaded, found ${Object.keys(zip.files).length} files`);
-        
-        console.log(`[Upload] Parsing chat text files...`);
-        for (const [filename, file] of Object.entries(zip.files)) {
-          if (filename.endsWith('.txt') && !file.dir) {
-            const buffer = await file.async('nodebuffer');
-            const content = buffer.toString('utf-8');
-            let chatName = path.basename(filename, '.txt').replace(/_/g, ' ');
-            chatName = chatName.replace(/[\u200E\u200F\u202A\u202B\u202C\u202D\u202E]/g, '').trim();
-            const parser = new WhatsAppParser();
-            const parsed = parser.parseExport(content, chatName);
-            parsedChats.push(parsed);
-            console.log(`[Upload] Parsed chat: ${chatName} (${parsed.messages.length} messages)`);
-          }
-        }
+        const uploadRecord = await storage.createUpload({
+          userId,
+          fileName: originalName,
+          fileSize,
+          filePath,
+          status: 'pending',
+          progress: 0,
+          chatCount: 0,
+          messageCount: 0,
+        });
 
-        const mediaFolder = path.join('uploads', 'media', userId);
-        await fs.mkdir(mediaFolder, { recursive: true });
+        console.log(`[Upload] Created upload record ${uploadRecord.id}, starting background processing...`);
 
-        const mediaFiles: Array<{ filename: string; timestamp: Date; type: string }> = [];
-        
-        console.log(`[Upload] Extracting media files...`);
-        let mediaCount = 0;
-        for (const [filename, file] of Object.entries(zip.files)) {
-          if (!filename.endsWith('.txt') && !file.dir && !filename.startsWith('__MACOSX')) {
-            const buffer = await file.async('nodebuffer');
-            const basename = path.basename(filename);
-            const destPath = path.join(mediaFolder, basename);
-            await fs.writeFile(destPath, buffer);
-            
-            const parser = new WhatsAppParser();
-            const mediaInfo = parser.parseMediaFilename(basename);
-            if (mediaInfo) {
-              mediaFiles.push({
-                filename: basename,
-                timestamp: mediaInfo.timestamp,
-                type: mediaInfo.type
-              });
-            }
-            mediaCount++;
-            if (mediaCount % 10 === 0) {
-              console.log(`[Upload] Extracted ${mediaCount} media files...`);
-            }
-          }
-        }
-        console.log(`[Upload] Extracted ${mediaCount} media files total`);
+        setImmediate(async () => {
+          const processor = new StreamingZipProcessor({
+            filePath,
+            userId,
+            uploadId: uploadRecord.id,
+            storage,
+          });
+          await processor.process();
+        });
 
-        for (const parsedChat of parsedChats) {
-          const parser = new WhatsAppParser();
-          parser.mapMediaToMessages(parsedChat.messages, mediaFiles, userId);
-        }
+        res.status(202).json({
+          uploadId: uploadRecord.id,
+          status: 'processing',
+          message: 'Upload received and processing started. Poll /api/upload/:uploadId/status for progress.',
+        });
       } else if (originalName.endsWith('.txt')) {
         const content = await fs.readFile(filePath, 'utf-8');
         const chatName = originalName.replace('.txt', '').replace(/_/g, ' ');
         const parser = new WhatsAppParser();
         const parsed = parser.parseExport(content, chatName);
-        parsedChats.push(parsed);
-      } else {
-        await fs.unlink(filePath);
-        return res.status(400).json({ error: "Invalid file type. Please upload .txt or .zip files" });
-      }
 
-      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DFE6E9', '#A29BFE', '#FD79A8'];
-      let totalMessages = 0;
-
-      console.log(`[Upload] Saving ${parsedChats.length} chats to database...`);
-      for (const parsedChat of parsedChats) {
+        const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7', '#DFE6E9', '#A29BFE', '#FD79A8'];
         const color = colors[Math.floor(Math.random() * colors.length)];
-        
+
         const chat = await storage.createChat({
           userId,
-          name: parsedChat.name,
-          isGroup: parsedChat.isGroup,
+          name: parsed.name,
+          isGroup: parsed.isGroup,
           avatarColor: color,
-          lastMessageAt: parsedChat.messages.length > 0 
-            ? parsedChat.messages[parsedChat.messages.length - 1].timestamp 
+          lastMessageAt: parsed.messages.length > 0
+            ? parsed.messages[parsed.messages.length - 1].timestamp
             : new Date(),
-          messageCount: parsedChat.messages.length,
+          messageCount: parsed.messages.length,
           isPinned: false,
           isArchived: false,
         });
 
-        const messagesToInsert = parsedChat.messages.map(msg => ({
+        const messagesToInsert = parsed.messages.map(msg => ({
           ...msg,
           chatId: chat.id,
         }));
 
         if (messagesToInsert.length > 0) {
-          console.log(`[Upload] Inserting ${messagesToInsert.length} messages for chat: ${parsedChat.name}...`);
           await storage.createMessages(messagesToInsert);
-          totalMessages += messagesToInsert.length;
         }
+
+        await storage.createUpload({
+          userId,
+          fileName: originalName,
+          fileSize,
+          filePath,
+          status: 'completed',
+          progress: 100,
+          chatCount: 1,
+          messageCount: parsed.messages.length,
+          processedAt: new Date(),
+        });
+
+        await fs.unlink(filePath);
+
+        console.log(`[Upload] ✓ Text file upload complete: 1 chat, ${parsed.messages.length} messages`);
+        res.json({
+          success: true,
+          chatCount: 1,
+          messageCount: parsed.messages.length,
+        });
+      } else {
+        await fs.unlink(filePath);
+        return res.status(400).json({ error: "Invalid file type. Please upload .txt or .zip files" });
       }
-
-      console.log(`[Upload] Creating upload record...`);
-      await storage.createUpload({
-        userId,
-        fileName: originalName,
-        fileSize: req.file.size,
-        chatCount: parsedChats.length,
-        messageCount: totalMessages,
-      });
-
-      await fs.unlink(filePath);
-
-      console.log(`[Upload] ✓ Upload complete: ${parsedChats.length} chats, ${totalMessages} messages`);
-      res.json({
-        success: true,
-        chatCount: parsedChats.length,
-        messageCount: totalMessages,
-      });
     } catch (error) {
       console.error("Error processing upload:", error);
       res.status(500).json({ error: "Failed to process upload" });
@@ -297,6 +260,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching uploads:", error);
       res.status(500).json({ error: "Failed to fetch uploads" });
+    }
+  });
+
+  app.get("/api/upload/:uploadId/status", isAuthenticated, async (req: AuthRequest, res: Response) => {
+    try {
+      const userId = req.userId!;
+      const upload = await storage.getUpload(req.params.uploadId);
+      
+      if (!upload) {
+        return res.status(404).json({ error: "Upload not found" });
+      }
+      
+      if (upload.userId !== userId) {
+        return res.status(403).json({ error: "Forbidden" });
+      }
+      
+      res.json({
+        id: upload.id,
+        fileName: upload.fileName,
+        fileSize: upload.fileSize,
+        status: upload.status,
+        progress: upload.progress,
+        chatCount: upload.chatCount,
+        messageCount: upload.messageCount,
+        errorMessage: upload.errorMessage,
+        uploadedAt: upload.uploadedAt,
+        processedAt: upload.processedAt,
+      });
+    } catch (error) {
+      console.error("Error fetching upload status:", error);
+      res.status(500).json({ error: "Failed to fetch upload status" });
     }
   });
 
