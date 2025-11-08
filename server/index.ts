@@ -11,11 +11,15 @@ declare module 'http' {
   }
 }
 app.use(express.json({
+  limit: '10mb',
   verify: (req, _res, buf) => {
     req.rawBody = buf;
   }
 }));
-app.use(express.urlencoded({ extended: false }));
+app.use(express.urlencoded({ 
+  extended: false,
+  limit: '10mb'
+}));
 app.use(cookieParser());
 
 app.use((req, res, next) => {
@@ -73,6 +77,12 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = parseInt(process.env.PORT || '5000', 10);
+  
+  server.timeout = 600000;
+  server.requestTimeout = 600000;
+  server.keepAliveTimeout = 650000;
+  server.headersTimeout = 660000;
+  
   server.listen({
     port,
     host: "0.0.0.0",

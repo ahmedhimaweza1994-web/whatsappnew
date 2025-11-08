@@ -13,7 +13,7 @@ import { z } from "zod";
 const upload = multer({
   dest: "uploads/",
   limits: {
-    fileSize: 100 * 1024 * 1024,
+    fileSize: 500 * 1024 * 1024,
   },
 });
 
@@ -137,7 +137,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/upload", isAuthenticated, upload.single("file"), async (req: AuthRequest, res: Response) => {
+  app.post("/api/upload", isAuthenticated, (req: AuthRequest, res: Response, next) => {
+    upload.single("file")(req, res, (err: any) => {
+      if (err) {
+        console.error("[Upload] Multer error:", err);
+        if (err.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: `File too large. Maximum size is 500MB` });
+        }
+        return res.status(400).json({ error: err.message || 'File upload failed' });
+      }
+      next();
+    });
+  }, async (req: AuthRequest, res: Response) => {
     req.setTimeout(600000);
     res.setTimeout(600000);
     
